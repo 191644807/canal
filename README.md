@@ -33,5 +33,5 @@ fieldmap,类似es mapping中每个字段的类型。
 数据库名的，此处有bug，导致出现 "Outer adapter write failed" ,且未输出错误日志，修复此bug.
 
 ## 后续计划  
-增加rabbit MQ的支持
+增加rabbit MQ的支持  
 增加redis的支持（建议实现）
