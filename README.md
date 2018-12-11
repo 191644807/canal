@@ -3,7 +3,7 @@ canal的具体使用，请参考阿里官方的代码，已经有非常详细的
 地址：https://github.com/alibaba/canal  
 在canal具体的使用中，遇到一些bug以及不便之处，拉了一个分支进行修改，如有兴趣，欢迎大家补充。
 
-#说明  
+# 说明  
 
 ## ES初始化  
 一个全新的ES无法使用，因为没有创建es index和mapping,增加了对应的功能。
