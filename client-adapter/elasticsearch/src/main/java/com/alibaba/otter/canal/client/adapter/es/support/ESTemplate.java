@@ -1,22 +1,23 @@
 package com.alibaba.otter.canal.client.adapter.es.support;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-
-import javax.sql.DataSource;
-
 import com.alibaba.fastjson.JSON;
+import com.alibaba.otter.canal.client.adapter.es.config.ESSyncConfig;
+import com.alibaba.otter.canal.client.adapter.es.config.ESSyncConfig.ESMapping;
+import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem;
+import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem.ColumnItem;
+import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem.FieldItem;
+import com.alibaba.otter.canal.client.adapter.support.DatasourceConfig;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -31,12 +32,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
-import com.alibaba.otter.canal.client.adapter.es.config.ESSyncConfig;
-import com.alibaba.otter.canal.client.adapter.es.config.ESSyncConfig.ESMapping;
-import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem;
-import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem.ColumnItem;
-import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem.FieldItem;
-import com.alibaba.otter.canal.client.adapter.support.DatasourceConfig;
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ES 操作模板
@@ -486,6 +489,10 @@ public class ESTemplate {
         String key = mapping.get_index() + "-" + mapping.get_type();
         Map<String, String> fieldType = esFieldTypes.get(key);
         if (fieldType == null) {
+
+            //初始化es 的index和mapping
+            addMapping(transportClient,mapping);
+
             ImmutableOpenMap<String, MappingMetaData> mappings;
             try {
                 mappings = transportClient.admin()
@@ -522,5 +529,52 @@ public class ESTemplate {
         }
 
         return fieldType.get(fieldName);
+    }
+
+
+    /**
+     * 添加 es 的 mapping
+     * 在es没有生成index和mapping的情况下，调用上面的getEsType 会出现找不到index或者mapping的情况
+     * 导致程序报错，增加初始情况下，自动生成index和mapping的功能
+     *
+     * @param transportClient transportClient
+     * @param mapping mapping
+     */
+    private  void addMapping(TransportClient transportClient, ESMapping mapping){
+        if(mapping.isEnablefieldmap()) {
+            IndexMetaData indexMetaData = transportClient.admin()
+                    .cluster()
+                    .prepareState()
+                    .execute()
+                    .actionGet()
+                    .getState()
+                    .getMetaData()
+                    .getIndices().get(mapping.get_index());
+            // 未找到mapping 则添加
+            if (null == indexMetaData) {
+                Map<String, String> fieldmap = mapping.getFieldmap();
+
+                try {
+                    XContentBuilder builder = XContentFactory.jsonBuilder().startObject().startObject("properties");
+                    fieldmap.forEach((id, value) -> {
+                        try {
+                            builder.startObject(id).field("type", value).endObject();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    builder.endObject().endObject();
+
+                    CreateIndexRequestBuilder cib = transportClient.admin()
+                            .indices().prepareCreate(mapping.get_index());
+                    cib.addMapping(mapping.get_type(), builder);
+                    cib.execute().actionGet();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
     }
 }

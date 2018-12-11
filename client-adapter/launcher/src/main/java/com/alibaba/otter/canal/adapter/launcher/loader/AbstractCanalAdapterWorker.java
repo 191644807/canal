@@ -1,16 +1,5 @@
 package com.alibaba.otter.canal.adapter.launcher.loader;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.otter.canal.adapter.launcher.common.SyncSwitch;
 import com.alibaba.otter.canal.adapter.launcher.config.SpringContext;
 import com.alibaba.otter.canal.client.CanalMQConnector;
@@ -20,6 +9,12 @@ import com.alibaba.otter.canal.client.adapter.support.Dml;
 import com.alibaba.otter.canal.client.adapter.support.MessageUtil;
 import com.alibaba.otter.canal.protocol.FlatMessage;
 import com.alibaba.otter.canal.protocol.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 
 /**
  * 适配器工作线程抽象类
@@ -83,7 +78,7 @@ public abstract class AbstractCanalAdapterWorker {
                         logger.error("Outer adapter write failed");
                     }
                 } catch (InterruptedException | ExecutionException e) {
-                    // ignore
+                    e.printStackTrace();
                 }
             });
         });
@@ -122,7 +117,7 @@ public abstract class AbstractCanalAdapterWorker {
                         logger.error("Outer adapter write failed");
                     }
                 } catch (InterruptedException | ExecutionException e) {
-                    // ignore
+                   e.printStackTrace();
                 }
             });
         });

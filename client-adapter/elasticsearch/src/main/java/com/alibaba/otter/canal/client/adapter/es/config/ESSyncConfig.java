@@ -87,6 +87,32 @@ public class ESSyncConfig {
 
         private SchemaItem          schemaItem;                             // sql解析结果模型
 
+        /**
+         * 是否需要手动开启 es mapping
+         * 和字段fieldmap配合使用，如果为true，则必须使用fieldmap
+         */
+        private boolean enablefieldmap=false;
+
+        /**
+         * es 的字段类型  by itmifen 2018.12.11
+         * 如：fieldmap:
+         *     id: "text"
+         *     BuildingId: "text"
+         *     HouseNum: "text"
+         *     Floors: "text"
+         *     IdProjectInfo: "text"
+         *     HouseDigitNum: "text"
+         *     BuildingNum: "text"
+         *     BuildingName: "text"
+         *     Name: "text"
+         *     projectid: "text"
+         *     bIdProjectInfo: "text"
+         *     cinitid: "text"
+         *     pCommunityId: "text"
+         */
+        private Map<String, String> fieldmap;
+
+
         public String get_index() {
             return _index;
         }
@@ -189,6 +215,22 @@ public class ESSyncConfig {
 
         public void setSchemaItem(SchemaItem schemaItem) {
             this.schemaItem = schemaItem;
+        }
+
+        public Map<String, String> getFieldmap() {
+            return fieldmap;
+        }
+
+        public void setFieldmap(Map<String, String> fieldmap) {
+            this.fieldmap = fieldmap;
+        }
+
+        public boolean isEnablefieldmap() {
+            return enablefieldmap;
+        }
+
+        public void setEnablefieldmap(boolean enablefieldmap) {
+            this.enablefieldmap = enablefieldmap;
         }
     }
 }

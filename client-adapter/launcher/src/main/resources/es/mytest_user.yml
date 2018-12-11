@@ -1,0 +1,45 @@
+dataSourceKey: defaultDS
+destination: example
+esMapping:
+  _index: mdm_house
+  _type: housebasicinfo
+  _id: Id
+#  pk: id
+  sql: "SELECT
+                  h.Id AS Id,
+                  h.BuildingId,
+                  h.HouseNum,
+                  h.Floors,
+                  h.IdProjectInfo,
+                  h.HouseDigitNum,
+                  b.BuildingNum,
+                  b.BuildingName,
+                  c.Name,
+                  p.id as projectid,
+                  b.IdProjectInfo as bIdProjectInfo,
+                  c.id as cinitid,
+                  p.CommunityId as pCommunityId
+                FROM HouseBasicInfo h
+                  LEFT JOIN BuildingBasicInfo b ON h.BuildingId = b.Id
+                  LEFT JOIN CommunityProjectInfo p ON p.Id = b.IdProjectInfo
+                  LEFT JOIN CommunityInitInfo c ON c.id = p.CommunityId
+        "
+  #objFields:
+  #sql: "select id,name,c_time from user"
+  enablefieldmap: true
+  fieldmap:
+    id: "text"
+    BuildingId: "text"
+    HouseNum: "text"
+    Floors: "text"
+    IdProjectInfo: "text"
+    HouseDigitNum: "text"
+    BuildingNum: "text"
+    BuildingName: "text"
+    Name: "text"
+    projectid: "text"
+    bIdProjectInfo: "text"
+    cinitid: "text"
+    pCommunityId: "text"
+  etlCondition: "where h.ModifiedOn>='{0}'"
+  commitBatch: 3000
