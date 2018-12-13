@@ -2,6 +2,7 @@ server:
   port: 8081
 logging:
   level:
+    ROOT: DEBUG
     org.springframework: WARN
     com.alibaba.otter.canal.client.adapter.hbase: DEBUG
     com.alibaba.otter.canal.client.adapter.es: trace
@@ -29,9 +30,10 @@ canal.conf:
       url: jdbc:mysql://192.168.2.172:3306/mdm_house?useUnicode=true
       username: root
       password: jnqn3@vyw
-#      url: jdbc:mysql://127.0.0.1:3306/test1?useUnicode=true
-#      username: root
-#      password: 123456
+    localDS:
+      url: jdbc:mysql://127.0.0.1:3306/test1?useUnicode=true
+      username: root
+      password: 123456
   canalAdapters:
   - instance: example # canal instance Name or mq topic name
     groups:
