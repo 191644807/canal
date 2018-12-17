@@ -6,7 +6,9 @@ import com.alibaba.otter.canal.client.adapter.es.config.ESSyncConfig.ESMapping;
 import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem;
 import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem.ColumnItem;
 import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem.FieldItem;
+import com.alibaba.otter.canal.client.adapter.support.Constant;
 import com.alibaba.otter.canal.client.adapter.support.DatasourceConfig;
+import com.alibaba.otter.canal.client.adapter.support.MappingConfigsLoader;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -16,8 +18,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -33,7 +34,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import javax.sql.DataSource;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -58,6 +60,8 @@ public class ESTemplate {
     public ESTemplate(TransportClient transportClient){
         this.transportClient = transportClient;
     }
+
+    private static final String   adapterName = "es";
 
     /**
      * 插入数据
@@ -552,29 +556,65 @@ public class ESTemplate {
                     .getIndices().get(mapping.get_index());
             // 未找到mapping 则添加
             if (null == indexMetaData) {
-                Map<String, String> fieldmap = mapping.getFieldmap();
-
+                //先读取配置文件信息
+                String mappingfilename=adapterName+File.separator + mapping.getMappingfilename();
+                String mappingstr= null;
                 try {
-                    XContentBuilder builder = XContentFactory.jsonBuilder().startObject().startObject("properties");
-                    fieldmap.forEach((id, value) -> {
-                        try {
-                            builder.startObject(id).field("type", value).endObject();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
-                    builder.endObject().endObject();
+                    mappingstr = getMapping(mappingfilename);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
-                    CreateIndexRequestBuilder cib = transportClient.admin()
-                            .indices().prepareCreate(mapping.get_index());
+                //构建mapping
+                try {
+                    XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
+                    try (XContentParser p = XContentFactory.xContent(XContentType.JSON).createParser(NamedXContentRegistry.EMPTY, mappingstr)) {
+                        builder.copyCurrentStructure(p);
+                    }
+                    CreateIndexRequestBuilder cib = transportClient.admin().indices().prepareCreate(mapping.get_index());
                     cib.addMapping(mapping.get_type(), builder);
                     cib.execute().actionGet();
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
             }
         }
+    }
+
+
+    /**
+     * 获取配置文件信息
+     * @param filename 文件名 如：es/test.json,放在es目录
+     * @return 文件内容
+     * @throws Exception
+     */
+    private String getMapping(String filename) throws Exception {
+        // 先取本地文件
+        File filePath = new File(".." + File.separator + Constant.CONF_DIR + File.separator+ filename);
+        if (!filePath.exists()) {
+            URL url = MappingConfigsLoader.class.getClassLoader().getResource("");
+            if (url != null) {
+                filePath = new File(url.getPath() + filename);
+            }
+        }
+        //再取类路径
+        if (filePath.exists()) {
+            String fileName = filePath.getName();
+            if (!fileName.endsWith(".json")) {
+                throw new FileNotFoundException("mapping 文件应该是json文件");
+            }
+            try (InputStream out = new FileInputStream(filePath)) {
+                StringBuilder mapb=new StringBuilder();
+                byte[] b = new byte[1024];// 读取到的数据要写入的数组。
+                 int len;// 每次读入到byte中的字节的长度
+                 while ((len = out.read(b)) != -1) {
+                     String str = new String(b, 0, len);
+                     mapb.append(str);
+                 }
+                return mapb.toString();
+            }
+        }
+        return  "";
     }
 }

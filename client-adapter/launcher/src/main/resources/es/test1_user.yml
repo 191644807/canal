@@ -9,10 +9,5 @@ esMapping:
   #objFields:
   #sql: "select id,name,c_time from user"
   enablefieldmap: true
-  fieldmap:
-    id: "long"
-    name: "text"
-    c_time: "date"
-    role_id: "text"
-  etlCondition: "long"
+  etlCondition: ""
   commitBatch: 3000
